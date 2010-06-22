@@ -1,5 +1,6 @@
 from messagesystem import *
 from jobqueue import *
+from worker import *
 
 class SystemBorg(object):
     """
@@ -11,11 +12,15 @@ class SystemBorg(object):
     def __new__(cls, *p, **k):
         self = object.__new__(cls, *p, **k)
         self.__dict__ = cls.__we_are_one
-        if(not self.has("msgsys")):
+        if(not self.has("INITIALIZED")):
+            self.set("INITIALIZED", 1)
             self.set("msgsys", MessageSystem())
-        if(not self.has("JobQueue")): 
             self.set("JobQueue", JobQueue())
         return self
+        
+    def initWorkerPool(self):
+        if(not self.has("WorkerPool")):
+            self.set("WorkerPool", WorkerPool())
 
     def set(self, key, value):
         self.__register[key] = value

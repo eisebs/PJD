@@ -69,7 +69,7 @@ class JobManagerTcpDownlink(JobManagerdownlink):
             elif(type(rcv_obj).__name__ == 'NullObject'):
                 pass
             elif(type(rcv_obj).__name__ == 'NullResult'):
-                print("NullResult for uid " + str(rcv_obj.uid))
+                print(rcv_obj.resulttext)
             if(self.client_idle):
                 if(not self.running and not self.finished):
                     self.finished = 1
@@ -102,6 +102,7 @@ class JobManagerUplink:
         self._ip = ip
         self._port = port    
         self._connect()  
+        self._jobspending = {}
          
     def __del__(self):
         self._disconnect()
@@ -117,6 +118,7 @@ class JobManagerUplink:
         
     def wait(self):
         self.send(StatusPacket("IDLE"))
+        wp = SystemBorg().get("WorkerPool")
         while(1):              
             raw = self._sock.recv(8) 
             if(not raw):
@@ -144,9 +146,20 @@ class JobManagerUplink:
             else: # assume it's a subclass of JobObject
                 job_obj = rcv_obj
                 job_obj.loadDependencies()
-                job_obj.process()
-                self.send(job_obj.getResult())
-                self.send(StatusPacket("IDLE"))
+                self._jobspending[job_obj.uid] = job_obj
+                #job_obj.process(self.jobDone)
+                wp.push(job_obj)
+            while(wp.isFullyBusy()):
+                time.sleep(0.1)
+            dellist = []
+            for x in self._jobspending:
+                ret_obj = wp.getAndClearResult(x)
+                if(ret_obj):
+                    self.send(ret_obj)
+                    dellist.append(x)
+            for x in dellist:
+                del self._jobspending[x]
+            self.send(StatusPacket("IDLE"))
             time.sleep(0.1)    
         
 class JobManagerTcpUplink(JobManagerUplink):
@@ -220,8 +233,8 @@ class JobManager(object):
             self.__uplink.wait()
             
 if(__name__ == "__main__"):
+    SystemBorg().initWorkerPool()
     DataBorg().registerUplink(DataBorgTcpUplink("127.0.0.1", 12214))    
     jobmgr = JobManager()    
     jobmgr.registerUplink(JobManagerTcpUplink("127.0.0.1", 12213))
-    jobmgr.sendStatus("IDLE")            
     jobmgr.wait() 

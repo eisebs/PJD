@@ -1,8 +1,7 @@
 import ui
 import os
+import time
 from server import *
-
-#server = Server.PyComputeServer(12213)
 
 def on_button(id):
   if(id == 1):
@@ -24,8 +23,13 @@ test.set("teststring1")
 test.set("teststring2")
 test.set("teststring4")
 #DataBorg().setValue("testobject", test)
+SystemBorg()
 DataBorg().setValue("testobject", test)
   
 gui = ui.Ui(on_button, on_tick)
 gui.setLabel("server")
 gui.root.mainloop()
+
+#on_button(1)
+#while(1):
+#    time.sleep(1)

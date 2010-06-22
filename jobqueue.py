@@ -2,8 +2,8 @@ import threading
 from databorg import *
 
 class NullResult:
-    def __init__(self, uid):
-        self.uid = uid
+    def __init__(self):
+        self.resulttext = ""
     pass
     
 class DependencySet:
@@ -17,6 +17,7 @@ class JobObject:
     def __init__(self):
         self.__dependencies = []
         self.__valid = 1
+        self.result = NullResult()
         pass
     def addDependency(self, dep, md5):
         self.__dependencies.append(DependencySet(dep, md5, None))
@@ -34,7 +35,7 @@ class JobObject:
             self.__valid = self.doJob()
         return self.__valid
     def getResult(self):
-        return NullResult(self.uid)  
+        return self.result
     def getIsValid(self):
         return self.__valid
         
@@ -52,6 +53,11 @@ class DebugJobObject(JobObject):
         print("dependencies:")
         for x in self.getDependencies():
             print(x.name, x.md5)     
+        print("working hard")
+        self.i = 0
+        for x in range(0, 10000000):
+            self.i = self.i + 1
+        self.result.resulttext = "multiprocessing processed job " + str(self.uid)
     
 class JobQueueObject:
     def __init__(self, object, last = None):
