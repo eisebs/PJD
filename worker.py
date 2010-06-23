@@ -3,9 +3,7 @@ import time
 from systemborg import *
 
 def doJob(job):
-    print("WORKER WORKING")
     job.process()
-    print("WORKER DONE")
     return job
             
 def done(joblist):
@@ -15,7 +13,6 @@ def done(joblist):
     print("worker completed " + str(job.uid))
     wp.busythreads = wp.busythreads - 1
     wp.idlethreads = wp.idlethreads + 1
-    print("idlethreads: " + str(wp.idlethreads))
     wp.results[job.uid] = job.getResult()
 
 class WorkerPool:
@@ -29,10 +26,8 @@ class WorkerPool:
     def push(self, job):
         if(self.idlethreads == 0):
             return 0
-        print("pushing " + str(job.uid) + " to worker")
         self.busythreads = self.busythreads + 1
         self.idlethreads = self.idlethreads - 1
-        print("idlethreads: " + str(self.idlethreads))
         self.joblist = [job]
         self.pool.map_async(doJob, self.joblist, callback=done)
         return 1

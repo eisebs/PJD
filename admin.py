@@ -138,7 +138,8 @@ if(__name__ == "__main__"):
     admin.send(DebugJobObject("test8"))           
     admin.send(DebugJobObject("test9"))           
     admin.send(DebugJobObject("testa"))           
-    admin.send(DebugJobObject("testb"))           
+    admin.send(DebugJobObject("testb"))  
+"""    
     admin.send(DebugJobObject("testc"))           
     admin.send(DebugJobObject("testd"))           
     admin.send(DebugJobObject("teste"))      
@@ -169,4 +170,5 @@ if(__name__ == "__main__"):
     admin.send(DebugJobObject("test2b"))           
     admin.send(DebugJobObject("test2c"))           
     admin.send(DebugJobObject("test2d"))           
-    admin.send(DebugJobObject("test2e"))          
+    admin.send(DebugJobObject("test2e"))      
+"""    

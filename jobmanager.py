@@ -152,6 +152,7 @@ class JobManagerUplink:
             while(wp.isFullyBusy()):
                 time.sleep(0.1)
             dellist = []
+            
             for x in self._jobspending:
                 ret_obj = wp.getAndClearResult(x)
                 if(ret_obj):
@@ -159,6 +160,7 @@ class JobManagerUplink:
                     dellist.append(x)
             for x in dellist:
                 del self._jobspending[x]
+            print("pending " + str(len(self._jobspending)))
             self.send(StatusPacket("IDLE"))
             time.sleep(0.1)    
         

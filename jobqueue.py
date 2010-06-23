@@ -47,13 +47,16 @@ class DebugJobObject(JobObject):
         self.addDependency("testobject", do.getMd5())
     def doJob(self):
         if(self.getIsValid()):
-            print("job object " + self.name + " is valid")
+            pass
+            #print("job object " + self.name + " is valid")
         else:
-            print("job object " + self.name + " is invalid")
+            pass
+            #print("job object " + self.name + " is invalid")
         print("dependencies:")
         for x in self.getDependencies():
-            print(x.name, x.md5)     
-        print("working hard")
+            pass
+            #print(x.name, x.md5)     
+        #print("working hard")
         self.i = 0
         for x in range(0, 10000000):
             self.i = self.i + 1
