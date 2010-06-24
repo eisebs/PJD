@@ -110,7 +110,7 @@ class JobServerTcpRequestHandler(socketserver.BaseRequestHandler, JobManagerTcpD
         JobManagerdownlink.setup(self)
     
     def finish(self):
-        JobManagerdownlink.stop(self)
+        JobManagerdownlink.stopDownlink(self)
     
     def handle(self):
         JobManagerTcpDownlink.handle(self)
