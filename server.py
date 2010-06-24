@@ -127,7 +127,7 @@ class AdminTcpRequestHandler(socketserver.BaseRequestHandler, JobManagerTcpDownl
         AdminDownlink.finish(self)
     
     def handle(self):
-        AdminTcpDownUplink.handle(self)
+        AdminTcpDownlink.handle(self)
           
     def send(self, data):
-        AdminTcpDownUplink.send(self, data)
+        AdminTcpDownlink.send(self, data)

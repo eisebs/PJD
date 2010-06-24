@@ -28,7 +28,7 @@ class AdminDownlink:
     def finish(self):
         pass
             
-class AdminTcpDownUplink(AdminDownlink):            
+class AdminTcpDownlink(AdminDownlink):            
     def handle(self):
         while(1):
             raw = self.request.recv(8) 

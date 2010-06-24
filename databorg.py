@@ -175,12 +175,17 @@ class DataBorg(object):
     __register = {}
     __uplink = None
     __downlink = {}
+    __initialized = 0
 
     def __init__(self):
         self.__dict__ = self.__we_are_one
+        self.__initialized = 1
+        self.lock = threading.Lock()	
 
     def setValue(self, key, value):
+        self.lock.acquire()
         self.__register[key] = value
+        self.lock.release()
 
     def getValue(self, key):
         return self.__register[key]           
@@ -211,11 +216,13 @@ class DataBorg(object):
             print("have no uplink")
             return 0
         print("I'm gonna have to ask my boss") 
+        retval = 0
         if(self.__uplink.ask(key, hash)): 
-            return 1
+            retval = 1
         else:
             print("master server doesn't know " + key + " either")
-            return 0            
+            retval = 0 
+        return retval
 
     def delValue(self, key):
         del self.__register[key]
