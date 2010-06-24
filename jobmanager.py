@@ -192,35 +192,15 @@ class JobManager(object):
     def __init__(self):
         self.__dict__ = self.__we_are_one
         
-    def registerUplink(self, connection):
-        if(self.__uplink or not (connection)):
-            return 0;
-        else:
-            self.__uplink = connection
-            return 1;       
+    def setUplink(self, connection):
+        self.__uplink = connection         
         
-    def unregisterUplink(self):
-        if(not self.__uplink):
-            return 0;
+    def setDownlink(self, ip, port):
+        if(ip and port):
+            address = ip + ":" + str(port)
+            self.__downlink[address] = address
         else:
-            del self.__uplink
-            return 1;          
-        
-    def registerDownlink(self, ip, port, connection):
-        address = ip + ":" + str(port)
-        if(address in self.__downlink):
-            return 0;
-        else:
-            self.__downlink[address] = connection
-            return 1;       
-        
-    def unregisterDownlink(self, ip, port, address):  
-        address = ip + ":" + str(port)
-        if(not address in self.__downlink):
-            return 0;
-        else:
-            del self.__downlink[address]
-            return 1;      
+            self.__downlink[address] = None 
             
     def sendStatus(self, status):
         if(self.__uplink):
@@ -236,7 +216,7 @@ class JobManager(object):
             
 if(__name__ == "__main__"):
     SystemBorg().initWorkerPool()
-    DataBorg().registerUplink(DataBorgTcpUplink("127.0.0.1", 12214))    
+    DataBorg().setUplink(DataBorgTcpUplink("127.0.0.1", 12214))    
     jobmgr = JobManager()    
-    jobmgr.registerUplink(JobManagerTcpUplink("127.0.0.1", 12213))
+    jobmgr.setUplink(JobManagerTcpUplink("127.0.0.1", 12213))
     jobmgr.wait() 

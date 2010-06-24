@@ -120,9 +120,9 @@ class DataBorgDownlink:
         self._ip = self.client_address[0]
         self._port = self.client_address[1]
         self.__connection = self.request
-        DataBorg().registerDownlink(self._ip, self._port)
+        DataBorg().setDownlink(self._ip, self._port)
     def finish(self):
-        DataBorg().unregisterDownlink(self._ip, self._port)  
+        DataBorg().setDownlink(None, None)  
     def _disconnect(self):
         pass      
     def send(self, data):
@@ -173,7 +173,7 @@ class DataBorg(object):
     """
     __we_are_one = {}
     __register = {}
-    __uplink = ()
+    __uplink = None
     __downlink = {}
 
     def __init__(self):
@@ -220,34 +220,13 @@ class DataBorg(object):
     def delValue(self, key):
         del self.__register[key]
         
-    def registerUplink(self, connection):
-        print("registerUplink")
-        if(self.__uplink or not (connection)):
-            return 0;
-        else:
-            self.__uplink = connection
-            return 1;       
+    def setUplink(self, connection):
+        self.__uplink = connection
         
-    def unregisterUplink(self):
-        if(not self.__uplink):
-            return 0;
-        else:
-            del self.__uplink
-            return 1;          
-        
-    def registerDownlink(self, ip, port):
-        address = ip + ":" + str(port)
-        if(address in self.__downlink):
-            return 0;
-        else:
+    def setDownlink(self, ip, port):
+        if(ip and port):
+            address = ip + ":" + str(port)
             self.__downlink[address] = address
-            return 1;       
-        
-    def unregisterDownlink(self, ip, port):  
-        address = ip + ":" + str(port)
-        if(not address in self.__downlink):
-            return 0;
-        else:                         
-            #del self.__downlink[address]
-            return 1;
+        else:
+            self.__downlink[address] = None
             
