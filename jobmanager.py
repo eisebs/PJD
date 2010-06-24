@@ -46,18 +46,26 @@ class JobManagerdownlink(threading.Thread):
         SystemBorg().get("msgsys").call("addclient", [self.client_address, self.stopDownlink])
             
 class JobManagerTcpDownlink(JobManagerdownlink): 
-           
     def handle(self):
         JobManagerdownlink.handle( self )
+        self.locallock = threading.Lock()
+        self.sendlock = threading.Lock()
+        self._jobspending = {}
         self.start()
         jq = SystemBorg().get("JobQueue") 
         while(1):
-            raw = self.request.recv(8)
+            raw = 0
+            try:
+                raw = self.request.recv(8)
+            except:
+                pass
             if(not raw):
-                return;
+                self.endHandle()
+                return 0
             packet_size = struct.unpack('Q', raw)[0];
             if(packet_size == 0):
-                return;
+                self.endHandle()
+                return 0
             total_data = []
             total_data_size = 0
             while(total_data_size < packet_size):
@@ -69,9 +77,8 @@ class JobManagerTcpDownlink(JobManagerdownlink):
             rcv_obj = pickle.loads(buffer)
             if(type(rcv_obj).__name__ == 'GoodbyePacket'):
                 print("got a goodbye packet")
-                SystemBorg().get("msgsys").call("delclient", self.client_address)
-                self.polljobs = 0
-                return 1    
+                self.endHandle()
+                return 1
             elif(type(rcv_obj).__name__ == 'StatusPacket'):
                 if(rcv_obj.getStatus() == "IDLE"):
                     self.client_idle = 1  
@@ -80,27 +87,17 @@ class JobManagerTcpDownlink(JobManagerdownlink):
             elif(type(rcv_obj).__name__ == 'NullObject'):
                 pass
             elif(type(rcv_obj).__name__ == 'NullResult'):
-                print(rcv_obj.resulttext)
-            """
-            if(self.client_idle):
-                if(not self.running and not self.finished):
-                    self.finished = 1
-                    print("send goodbye");
-                    self.send(GoodbyePacket())
-                else:
-                    nextjob = 0
-                    while(self.running and not nextjob):
-                        nextjob = jq.pop()
-                        time.sleep(0.1)
-                    if(nextjob):
-                        self.sendjob(nextjob)
-                    else: # self.running must be 0
-                        if(not self.finished):
-                            self.finished = 1
-                            print("send goodbye");
-                            self.send(GoodbyePacket())
-            """
+                self.locallock.acquire()
+                del self._jobspending[rcv_obj.uid]
+                self.locallock.release()
+                print(rcv_obj.resulttext + ", " + str(len(self._jobspending)) + " jobs pending")
             time.sleep(0.1)
+    
+    def endHandle(self):
+        jq = SystemBorg().get("JobQueue") 
+        SystemBorg().get("msgsys").call("delclient", self.client_address)
+        self.polljobs = 0
+        jq.pushLostJobsInFront(self._jobspending)
             
     def pollJobs(self):
         jq = SystemBorg().get("JobQueue") 
@@ -116,7 +113,10 @@ class JobManagerTcpDownlink(JobManagerdownlink):
                         nextjob = jq.pop()
                         time.sleep(0.1)
                     if(nextjob):
+                        self.locallock.acquire()
+                        self._jobspending[nextjob.uid] = nextjob
                         self.sendjob(nextjob)
+                        self.locallock.release()
                     else: # self.running must be 0
                         if(not self.finished):
                             self.finished = 1
@@ -129,9 +129,14 @@ class JobManagerTcpDownlink(JobManagerdownlink):
         self.send(data)
           
     def send(self, data):
-        picklestring = pickle.dumps(data)     
-        self.request.send(struct.pack('Q', len(picklestring)))
-        self.request.send(picklestring)
+        self.sendlock.acquire()
+        picklestring = pickle.dumps(data)
+        try:
+            self.request.send(struct.pack('Q', len(picklestring)))
+            self.request.send(picklestring)
+        except:
+            pass
+        self.sendlock.release()
             
 class JobManagerUplink(threading.Thread):
     _ip = ""
@@ -142,6 +147,7 @@ class JobManagerUplink(threading.Thread):
         self._connect()  
         self._jobspending = {}
         self.running = 1;
+        self.received = 0
         self.locallock = threading.Lock()
         threading.Thread.__init__( self )
          
@@ -160,9 +166,14 @@ class JobManagerUplink(threading.Thread):
     def wait(self):
         self.send(StatusPacket("IDLE"))
         wp = SystemBorg().get("WorkerPool")
-        while(1):              
-            raw = self._sock.recv(8) 
+        while(1):
+            raw = 0
+            try:      
+                raw = self._sock.recv(8) 
+            except:
+                pass
             if(not raw):
+                print("connection lost!")
                 self.running = 0
                 return;
             packet_size = struct.unpack('Q', raw)[0];
@@ -193,13 +204,14 @@ class JobManagerUplink(threading.Thread):
                 job_obj.loadDependencies()
                 self.locallock.acquire()
                 self._jobspending[job_obj.uid] = job_obj
-                self.locallock.release()
+                self.received = 1
                 #job_obj.process(self.jobDone)
                 wp.push(job_obj)
-            while(wp.isFullyBusy()):
+                self.locallock.release()
+            #while(wp.isFullyBusy()):
                 time.sleep(0.1)
-            if(self.running):
-                self.send(StatusPacket("IDLE"))
+            #if(self.running):
+            #    self.send(StatusPacket("IDLE"))
                 
     def run(self):
         self.pollWorkerPool()
@@ -210,9 +222,14 @@ class JobManagerUplink(threading.Thread):
             if(not self.running):
                 print("exiting pollWorkerPool")
                 return
+            if(self.running and self.received and not wp.isFullyBusy()):
+                self.received = 0
+                self.send(StatusPacket("IDLE"))
             dellist = []
             for x in self._jobspending:
+                self.locallock.acquire()
                 ret_obj = wp.getAndClearResult(x)
+                self.locallock.release()
                 if(ret_obj):
                     print("sending " + ret_obj.resulttext)
                     self.send(ret_obj)
@@ -239,8 +256,11 @@ class JobManagerTcpUplink(JobManagerUplink):
     def send(self, data):
         self.sendlock.acquire()
         picklestring = pickle.dumps(data) 
-        self._sock.send(struct.pack('Q', len(picklestring)))
-        self._sock.send(picklestring)
+        try:
+            self._sock.send(struct.pack('Q', len(picklestring)))
+            self._sock.send(picklestring)
+        except:
+            pass
         self.sendlock.release()
 
 class JobManager(object):
