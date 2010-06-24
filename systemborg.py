@@ -8,12 +8,13 @@ class SystemBorg(object):
     """
     __we_are_one = {}
     __register = {}
+    initialized = 0
     
     def __new__(cls, *p, **k):
         self = object.__new__(cls, *p, **k)
         self.__dict__ = cls.__we_are_one
-        if(not self.has("INITIALIZED")):
-            self.set("INITIALIZED", 1)
+        if(not self.initialized):
+            self.initialized = 1
             self.set("msgsys", MessageSystem())
             self.set("JobQueue", JobQueue())
         return self
