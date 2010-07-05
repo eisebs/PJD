@@ -5,6 +5,12 @@ import time
 import hashlib
 import threading        
 import struct
+import os
+
+def normpath(path):
+    path = os.path.abspath(path)
+    path.replace("\\\\", "\\")
+    return path
 
 class DataObject:
     def __init__(self, object):
@@ -34,6 +40,10 @@ class DebugLargeDataObject(DataObject):
         for x in range(24):
             self.bigstring = self.bigstring + self.bigstring
         DataObject.__init__(self, object)
+        
+class FileDataObject(DataObject): 
+    def __init__(self, fileContent):
+        DataObject.__init__(self, fileContent)
 
 class NullObject:
     null = 0      
@@ -156,7 +166,7 @@ class DataBorgTcpDownlink(DataBorgDownlink):
                     print("client already has the correct version!")
                     self.send(UptodateObject())
                     return    
-                print("sending object " + rcv_obj.key + ": " +  data.get() + ", revision " + str(data.getRev()))  
+                #print("sending object " + rcv_obj.key + ": " +  data.get() + ", revision " + str(data.getRev()))  
                 self.send(data)
             else:
                 self.send(NullObject())
@@ -176,6 +186,8 @@ class DataBorg(object):
     __uplink = None
     __downlink = {}
     __initialized = 0
+    __dataPathMap = {}
+    __target = "/temp"
 
     def __init__(self):
         self.__dict__ = self.__we_are_one
@@ -184,14 +196,60 @@ class DataBorg(object):
 
     def setValue(self, key, value):
         self.lock.acquire()
+        if(key[0:5] == "FILE:"):
+            return self.saveFile(key[5:], value.get())
         self.__register[key] = value
         self.lock.release()
 
     def getValue(self, key):
-        return self.__register[key]           
+        if(key[0:5] == "FILE:"):
+            return self.loadFile(key[5:])
+        return self.__register[key]   
+
+    def loadFile(self, key):
+        fileReader = open(self.findFile(key), mode='rb', buffering = 2)
+        fileContent = fileReader.read(-1)
+        print("read contents of " + key)
+        return FileDataObject(fileContent)
+
+    def saveFile(self, key, content):
+        if("target" not in self.__dataPathMap):
+            return 0
+        path = self.__dataPathMap["target"] + "/" + key
+        path = normpath(path)
+        print(path)
+        if(os.path.exists(path)):
+            return 0
+        fileWriter = open(path, mode="wb")
+        fileWriter.write(content)
+        print("done.")
+        return 1
+
+    def findFile(self, key):
+        alias = "default"
+        if(":" in key):
+            colonIndex = key.index(":")
+            alias = key[0:colonIndex]
+            key = key[colonIndex+1:]
+        if(alias not in self.__dataPathMap):
+            return 0
+        for x in self.__dataPathMap[alias]:
+            path = x + "/" + key
+            path = normpath(path)
+            if(os.path.exists(path)):
+                print(path + " found!")
+                return path
+            print(path + " not found!")
+            return 0
 
     def hasValueMd5(self, key, hash):   
-        if(key in self.__register):  
+        if(key[0:5] == "FILE:"):
+            path = self.findFile(key[5:])
+            if(path):
+                return path
+            else:
+                return self.askServer(key, hash)    
+        elif(key in self.__register):  
             if(hash == self.getValue(key).getMd5()):  
                 print("found it, and with the correct md5!")  
                 return 1
@@ -201,8 +259,14 @@ class DataBorg(object):
         else:
             return self.askServer(key, hash)            
 
-    def hasValue(self, key):   
-        if(key in self.__register):  
+    def hasValue(self, key):
+        if(key[0:5] == "FILE:"):
+            path = self.findFile(key[5:])
+            if(path):
+                return path
+            else:
+                return self.askServer(key, "0")    
+        elif(key in self.__register):  
             if(not self.__uplink):
                 print("found it, and I'm the boss!")
                 return 1
@@ -237,3 +301,10 @@ class DataBorg(object):
         else:
             self.__downlink[address] = None
             
+    def addDataPath(self, path, alias = "default"):
+        if(alias not in self.__dataPathMap):
+            self.__dataPathMap[alias] = []
+        self.__dataPathMap[alias].append(path)
+        
+    def setTempPath(self, path):
+        self.__dataPathMap["target"] = path

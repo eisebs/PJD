@@ -25,6 +25,7 @@ test.set("teststring4")
 #DataBorg().setValue("testobject", test)
 SystemBorg()
 DataBorg().setValue("testobject", test)
+DataBorg().addDataPath("D:/Fotos/20100704_Springbrunnen_Bundeshaus")
   
 gui = ui.Ui(on_button, on_tick)
 gui.setLabel("server")
