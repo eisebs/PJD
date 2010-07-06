@@ -26,10 +26,12 @@ class JobObject:
         return self.__dependencies
     def loadDependencies(self):
         for x in self.__dependencies:
+            print("x.name = " + x.name)
             if(not DataBorg().hasValueMd5(x.name, x.md5)):
                 self.valid = 0
                 return
             x.data = DataBorg().getValue(x.name)
+            x.name = DataBorg().resolveDataPath(x.name[5:])
             x.md5 = x.data.getMd5()
     def process(self):
         if(self.__valid):
@@ -63,6 +65,34 @@ class DebugJobObject(JobObject):
             self.i = self.i + 1
         self.result.uid = self.uid
         self.result.resulttext = "multiprocessing processed job " + str(self.uid)
+
+class ImageResizeJobResult(NullResult):
+    def __init__(self, uid, ResultImageObject):
+        self.uid = uid
+        self.object = ResultImageObject
+        self.resulttext = ""
+    pass        
+        
+class ImageResizeJobObject(JobObject):
+    def __init__(self, source, target, factor):
+        JobObject.__init__(self)
+        self.__source = source
+        self.__target = target
+        self.__factor = factor
+        sourceObject = FileDataObject(self.__source)
+        self.addDependency(sourceObject.getKey(), sourceObject.getMd5())
+    def doJob(self):
+        print("ImageResizeJobObject.doJob")
+        path = self.getDependencies()[0].name
+        print(path)
+        commandstring = "i_view32 " + path + "/resize=(640) /aspectratio /convert " + self.__target
+        print(commandstring)
+        os.system(commandstring)
+    def getResult(self):
+        self.result.uid = self.uid
+        self.result.resulttext = "multiprocessing processed job " + str(self.uid)
+        #self.result = ImageResizeJobResult(self.uid, FileDataObject("FILE:" + self.__target))
+        return self.result
     
 class JobQueueObject:
     def __init__(self, object, last = None):

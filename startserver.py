@@ -17,17 +17,9 @@ def on_button(id):
 def on_tick():
   return
   
-test = DataObject("teststring")
-test.set("teststring2")   
-test.set("teststring1")
-test.set("teststring2")
-test.set("teststring4")
-#DataBorg().setValue("testobject", test)
-SystemBorg()
-DataBorg().setValue("testobject", test)
-DataBorg().setDataPath("D:/Fotos/20100704_Springbrunnen_Bundeshaus")
-obj = FileDataObject('FILE:DSC_0421.JPG')
-DataBorg().setValue('FILE:DSC_0421.JPG', obj)
+DataBorg().setDataPath("D:/Fotos/20100704_Springbrunnen_Bundeshaus", "fotos")
+obj = FileDataObject('FILE:fotos#DSC_0421.JPG')
+DataBorg().setValue('FILE:fotos#DSC_0421.JPG', obj)
   
 gui = ui.Ui(on_button, on_tick)
 gui.setLabel("server")

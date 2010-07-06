@@ -86,7 +86,7 @@ class JobManagerTcpDownlink(JobManagerdownlink):
                 print("LargeDebugPacket recieved! size = " + str(len(buffer)))
             elif(type(rcv_obj).__name__ == 'NullObject'):
                 pass
-            elif(type(rcv_obj).__name__ == 'NullResult'):
+            else: # assume it's a subclass of nullresult
                 self.locallock.acquire()
                 del self._jobspending[rcv_obj.uid]
                 self.locallock.release()
@@ -298,7 +298,9 @@ class JobManager(object):
             
 if(__name__ == "__main__"):
     SystemBorg().initWorkerPool()
-    DataBorg().setUplink(DataBorgTcpUplink("127.0.0.1", 12214))    
+    DataBorg().setUplink(DataBorgTcpUplink("127.0.0.1", 12214))   
+    DataBorg().setDataPath("D:/temp/input", "fotos")    
+    DataBorg().setDataPath("D:/temp/output", "output")    
     jobmgr = JobManager()    
     uplink = JobManagerTcpUplink("127.0.0.1", 12213)
     jobmgr.setUplink(uplink)
