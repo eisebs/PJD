@@ -26,6 +26,8 @@ test.set("teststring4")
 SystemBorg()
 DataBorg().setValue("testobject", test)
 DataBorg().addDataPath("D:/Fotos/20100704_Springbrunnen_Bundeshaus")
+obj = FileDataObject('FILE:DSC_0421.JPG')
+DataBorg().setValue('FILE:DSC_0421.JPG', obj)
   
 gui = ui.Ui(on_button, on_tick)
 gui.setLabel("server")

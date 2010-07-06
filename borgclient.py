@@ -13,5 +13,6 @@ DataBorg().setUplink(DataBorgTcpUplink("127.0.0.1", 12214))
 #test2 = DataObject("teststring5")
 
 DataBorg().setTempPath('D:/temp')
-if(DataBorg().hasValue('FILE:DSC_0221.JPG')):
-    DataBorg().getValue('FILE:DSC_0221.JPG')
+#obj = FileDataObject('FILE:DSC_0421.JPG')
+DataBorg().hasValue("FILE:DSC_0421.JPG")
+#DataBorg().hasValueMd5('FILE:DSC_0421.JPG', DataBorg().getValue('FILE:DSC_0421.JPG').getMd5)

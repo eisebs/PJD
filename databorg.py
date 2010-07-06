@@ -24,6 +24,7 @@ class DataObject:
           self.__md5 = hashlib.md5(self.__data.encode()).hexdigest()
         else:
           self.__md5 = hashlib.md5(self.__data).hexdigest()
+        self.isValid = 1
         
     def get(self):
         return self.__data      
@@ -33,6 +34,15 @@ class DataObject:
         
     def getMd5(self):
         return self.__md5 
+          
+    def preDataborgSend(self):
+        pass
+          
+    def postDataborgSend(self):
+        pass
+          
+    def postDataborgReceive(self):
+        pass
         
 class DebugLargeDataObject(DataObject): 
     def __init__(self, object):
@@ -42,8 +52,76 @@ class DebugLargeDataObject(DataObject):
         DataObject.__init__(self, object)
         
 class FileDataObject(DataObject): 
-    def __init__(self, fileContent):
-        DataObject.__init__(self, fileContent)
+    def __init__(self, key):
+        DataObject.__init__(self, key)
+        self.data = None
+        
+    def initialize(self, key):
+        self.__key = key
+        if(not(key[0:5] == "FILE:")):
+            return 0
+        self.__path = self.findFile(key[5:])
+        if(not self.__path):
+            return 0
+        self.__md5 = hashlib.md5(self.loadFile(self.__path)).hexdigest()
+        print("file md5 = " + self.__md5)
+        return 1
+
+    def loadFile(self, path):
+        print("loading " + path)
+        fileReader = open(path, mode='rb')
+        fileContent = fileReader.read()
+        fileReader.flush()
+        print("read contents of " + path)
+        return fileContent
+
+    def saveFile(self, path, content):
+        print("saving " + path)
+        if(os.path.exists(path)):
+            return 0
+        fileWriter = open(path, mode="wb")
+        fileWriter.write(content)
+        fileWriter.flush()
+        print("done.")
+        return 1
+
+    def findFile(self, path):
+        path = DataBorg().resolveDataPath(path)
+        if(os.path.exists(path)):
+            print(path + " found!")
+            return path
+        print(path + " not found!")
+        return 0
+
+    def findSaveFile(self, path):
+        path = DataBorg().resolveDataPath(path)
+        if(not os.path.exists(path)):
+            return path
+        return 0
+    
+    def set(self, value):
+        print("FileDataObject.set " + str(type(value)))
+        if(type(value) == type("")): 
+            if(self.initialize(value)):
+                DataObject.set(self, value)
+        else:
+          self.__md5 = hashlib.md5(value).hexdigest()
+          self.saveFile(self.__path, value)
+          
+    def preDataborgSend(self):
+        self.data = self.loadFile(self.__path)
+          
+    def postDataborgSend(self):
+        self.data = None
+          
+    def postDataborgReceive(self):
+        self.__path = self.findSaveFile(self.__key[5:])
+        if(self.__path):
+            self.saveFile(self.__path, self.data)
+        self.data = None
+        
+    def get(self):
+        return self.__data    
 
 class NullObject:
     null = 0      
@@ -103,6 +181,7 @@ class DataBorgUplink:
             else: # assume it's a data object
                 print("got a " + type(rcv_obj).__name__)
                 DataBorg().setValue(request, rcv_obj)
+                rcv_obj.postDataborgReceive()
                 return 1
             time.sleep(0.01)
         
@@ -161,13 +240,15 @@ class DataBorgTcpDownlink(DataBorgDownlink):
             if(DataBorg().hasValue(rcv_obj.key)):   
                 data = DataBorg().getValue(rcv_obj.key)
                 print("mine: " + data.getMd5()) 
-                print("client's: " + rcv_obj.md5) 
+                print("client's: " + str(rcv_obj.md5))
                 if(data.getMd5() == rcv_obj.md5):
                     print("client already has the correct version!")
                     self.send(UptodateObject())
                     return    
                 #print("sending object " + rcv_obj.key + ": " +  data.get() + ", revision " + str(data.getRev()))  
+                data.preDataborgSend()
                 self.send(data)
+                data.postDataborgSend()
             else:
                 self.send(NullObject())
     
@@ -196,60 +277,14 @@ class DataBorg(object):
 
     def setValue(self, key, value):
         self.lock.acquire()
-        if(key[0:5] == "FILE:"):
-            return self.saveFile(key[5:], value.get())
         self.__register[key] = value
         self.lock.release()
 
     def getValue(self, key):
-        if(key[0:5] == "FILE:"):
-            return self.loadFile(key[5:])
         return self.__register[key]   
 
-    def loadFile(self, key):
-        fileReader = open(self.findFile(key), mode='rb', buffering = 2)
-        fileContent = fileReader.read(-1)
-        print("read contents of " + key)
-        return FileDataObject(fileContent)
-
-    def saveFile(self, key, content):
-        if("target" not in self.__dataPathMap):
-            return 0
-        path = self.__dataPathMap["target"] + "/" + key
-        path = normpath(path)
-        print(path)
-        if(os.path.exists(path)):
-            return 0
-        fileWriter = open(path, mode="wb")
-        fileWriter.write(content)
-        print("done.")
-        return 1
-
-    def findFile(self, key):
-        alias = "default"
-        if(":" in key):
-            colonIndex = key.index(":")
-            alias = key[0:colonIndex]
-            key = key[colonIndex+1:]
-        if(alias not in self.__dataPathMap):
-            return 0
-        for x in self.__dataPathMap[alias]:
-            path = x + "/" + key
-            path = normpath(path)
-            if(os.path.exists(path)):
-                print(path + " found!")
-                return path
-            print(path + " not found!")
-            return 0
-
     def hasValueMd5(self, key, hash):   
-        if(key[0:5] == "FILE:"):
-            path = self.findFile(key[5:])
-            if(path):
-                return path
-            else:
-                return self.askServer(key, hash)    
-        elif(key in self.__register):  
+        if(key in self.__register):  
             if(hash == self.getValue(key).getMd5()):  
                 print("found it, and with the correct md5!")  
                 return 1
@@ -260,20 +295,31 @@ class DataBorg(object):
             return self.askServer(key, hash)            
 
     def hasValue(self, key):
-        if(key[0:5] == "FILE:"):
-            path = self.findFile(key[5:])
-            if(path):
-                return path
-            else:
-                return self.askServer(key, "0")    
-        elif(key in self.__register):  
+        if(key in self.__register):  
             if(not self.__uplink):
                 print("found it, and I'm the boss!")
                 return 1
             else:
                 return 0
         else:
-            return self.askServer(key, 0)           
+            return self.askServer(key, 0)         
+
+#    def findFile(self, key):
+#        alias = "default"
+#        if(":" in key):
+#            colonIndex = key.index(":")
+#            alias = key[0:colonIndex]
+#            key = key[colonIndex+1:]
+#        if(alias not in self.__dataPathMap):
+#            return 0
+#        for x in self.__dataPathMap[alias]:
+#            path = x + "/" + key
+#            path = normpath(path)
+#            if(os.path.exists(path)):
+#                print(path + " found!")
+#                return path
+#            print(path + " not found!")
+#            return 0
                 
     def askServer(self, key, hash): 
         if(not self.__uplink):
@@ -308,3 +354,25 @@ class DataBorg(object):
         
     def setTempPath(self, path):
         self.__dataPathMap["target"] = path
+        self.addDataPath(path)
+        
+    def resolveDataPath(self, path):
+        alias = "default"
+        if("#" in path):
+            colonIndex = path.index("#")
+            alias = path[0:colonIndex]
+            path = path[colonIndex+1:]
+        if(alias not in self.__dataPathMap):
+            return path
+        for x in self.__dataPathMap[alias]:
+            path = x + "/" + path
+            path = normpath(path)
+            if(os.path.exists(path)):
+                print(path + " found!")
+                return path
+            print(path + " not found!")
+            return path
+        if(alias not in self.__dataPathMap):
+            return path
+        else:
+            return normpath(self.__dataPathMap[alias])
