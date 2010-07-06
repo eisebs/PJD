@@ -100,7 +100,6 @@ class FileDataObject(DataObject):
         return 0
     
     def set(self, value):
-        print("FileDataObject.set " + str(type(value)))
         if(type(value) == type("")): 
             if(self.initialize(value)):
                 DataObject.set(self, value)
@@ -347,14 +346,8 @@ class DataBorg(object):
         else:
             self.__downlink[address] = None
             
-    def addDataPath(self, path, alias = "default"):
-        if(alias not in self.__dataPathMap):
-            self.__dataPathMap[alias] = []
-        self.__dataPathMap[alias].append(path)
-        
-    def setTempPath(self, path):
-        self.__dataPathMap["target"] = path
-        self.addDataPath(path)
+    def setDataPath(self, path, alias = "default"):
+        self.__dataPathMap[alias] = path
         
     def resolveDataPath(self, path):
         alias = "default"
@@ -364,15 +357,4 @@ class DataBorg(object):
             path = path[colonIndex+1:]
         if(alias not in self.__dataPathMap):
             return path
-        for x in self.__dataPathMap[alias]:
-            path = x + "/" + path
-            path = normpath(path)
-            if(os.path.exists(path)):
-                print(path + " found!")
-                return path
-            print(path + " not found!")
-            return path
-        if(alias not in self.__dataPathMap):
-            return path
-        else:
-            return normpath(self.__dataPathMap[alias])
+        return normpath(self.__dataPathMap[alias] + "/" + path)

@@ -25,7 +25,7 @@ test.set("teststring4")
 #DataBorg().setValue("testobject", test)
 SystemBorg()
 DataBorg().setValue("testobject", test)
-DataBorg().addDataPath("D:/Fotos/20100704_Springbrunnen_Bundeshaus")
+DataBorg().setDataPath("D:/Fotos/20100704_Springbrunnen_Bundeshaus")
 obj = FileDataObject('FILE:DSC_0421.JPG')
 DataBorg().setValue('FILE:DSC_0421.JPG', obj)
   
