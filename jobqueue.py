@@ -4,72 +4,95 @@ from databorg import *
 class NullResult:
     def __init__(self):
         self.uid = -1
+        self.result = None
         self.resulttext = ""
     pass
     
 class DependencySet:
     def __init__(self, name, md5, data):
         self.name = name
+        self.resolvedName = name
         self.md5 = md5
+        self.data = data
+    
+class ResultSet:
+    def __init__(self, name, data):
+        self.name = name
+        self.resolvedName = name
         self.data = data
 
 class JobObject:
     uid = -1
     def __init__(self):
         self.__dependencies = []
+        self.__results = []
         self.__valid = 1
-        self.result = NullResult()
+        self.__resultsObject = NullResult()
         pass
     def addDependency(self, dep, md5):
         self.__dependencies.append(DependencySet(dep, md5, None))
+    def addResult(self, key, target):
+        self.__results.append(ResultSet(key, target))
     def getDependencies(self):
         return self.__dependencies
+    def getResults(self):
+        return self.__results
     def loadDependencies(self):
         for x in self.__dependencies:
-            print("x.name = " + x.name)
-            if(not DataBorg().hasValueMd5(x.name, x.md5)):
+            print("x.resolvedName = " + x.resolvedName)
+            if(not DataBorg().hasValueMd5(x.resolvedName, x.md5)):
                 self.valid = 0
                 return
-            x.data = DataBorg().getValue(x.name)
-            x.name = DataBorg().resolveDataPath(x.name[5:])
+            x.data = DataBorg().getValue(x.resolvedName)
             x.md5 = x.data.getMd5()
+    def resolvePaths(self):
+        for x in self.getDependencies():
+            x.resolvedName = DataBorg().resolveDataPath(x.name[5:])
+        for x in self.getResults():
+            x.resolvedName  = DataBorg().resolveDataPath(x.name[5:])
     def process(self):
         if(self.__valid):
             self.__valid = self.doJob()
         return self.__valid
-    def getResult(self):
-        return self.result
+    def addResults(self, resultSet):
+        return self.__results.append(resultSet)
+    def getResults(self):
+        return self.__results
+    def getResultsObject(self):
+        return self.__resultsObject
+    def setResultsObject(self, resultsObject):
+        self.__resultsObject = resultsObject
     def getIsValid(self):
         return self.__valid
         
-class DebugJobObject(JobObject):
-    def __init__(self, name):
-        self.name = name
-        JobObject.__init__(self)
-        do = DataObject("teststring")
-        self.addDependency("testobject", do.getMd5())
-    def doJob(self):
-        if(self.getIsValid()):
-            pass
-            #print("job object " + self.name + " is valid")
-        else:
-            pass
-            #print("job object " + self.name + " is invalid")
-        print("dependencies:")
-        for x in self.getDependencies():
-            pass
-            #print(x.name, x.md5)     
-        #print("working hard")
-        self.i = 0
-        for x in range(0, 10000000):
-            self.i = self.i + 1
-        self.result.uid = self.uid
-        self.result.resulttext = "multiprocessing processed job " + str(self.uid)
+#class DebugJobObject(JobObject):
+#    def __init__(self, name):
+#        self.name = name
+#        JobObject.__init__(self)
+#        do = DataObject("teststring")
+#        self.addDependency("testobject", do.getMd5())
+#    def doJob(self):
+#        if(self.getIsValid()):
+#            pass
+#            #print("job object " + self.name + " is valid")
+#        else:
+#            pass
+#            #print("job object " + self.name + " is invalid")
+#        print("dependencies:")
+#        for x in self.getDependencies():
+#            pass
+#            #print(x.name, x.md5)     
+#        #print("working hard")
+#        self.i = 0
+#        for x in range(0, 10000000):
+#            self.i = self.i + 1
+#        self.result.uid = self.uid
+#        self.result.resulttext = "multiprocessing processed job " + str(self.uid)
 
 class ImageResizeJobResult(NullResult):
-    def __init__(self, uid, ResultImageObject):
+    def __init__(self, uid, result):
         self.uid = uid
-        self.object = ResultImageObject
+        self.result = result
         self.resulttext = ""
     pass        
         
@@ -81,18 +104,25 @@ class ImageResizeJobObject(JobObject):
         self.__factor = factor
         sourceObject = FileDataObject(self.__source)
         self.addDependency(sourceObject.getKey(), sourceObject.getMd5())
+        targetObject = FileDataObject(self.__target)
+        self.addResult(targetObject.getKey(), targetObject)
     def doJob(self):
         print("ImageResizeJobObject.doJob")
-        path = self.getDependencies()[0].name
-        print(path)
-        commandstring = "i_view32 " + path + "/resize=(640) /aspectratio /convert " + self.__target
+        source = self.getDependencies()[0].resolvedName
+        resolvedTargetName = self.getResults()[0].resolvedName
+        print(source + " -> " + resolvedTargetName)
+        commandstring = "i_view32 " + source + "/resize=(640) /aspectratio /convert " + resolvedTargetName
         print(commandstring)
         os.system(commandstring)
-    def getResult(self):
-        self.result.uid = self.uid
-        self.result.resulttext = "multiprocessing processed job " + str(self.uid)
-        #self.result = ImageResizeJobResult(self.uid, FileDataObject("FILE:" + self.__target))
-        return self.result
+    def getResultsObject(self):
+        target = self.getResults()[0]
+        targetName = target.name
+        target.data.uid = self.uid
+        target.data.resulttext = "multiprocessing processed job " + str(self.uid)
+        print("FileDataObject(" + targetName + ")")
+        target.data.object = FileDataObject(targetName)
+        self.setResultsObject(ImageResizeJobResult(self.uid, target))
+        return JobObject.getResultsObject(self)
     
 class JobQueueObject:
     def __init__(self, object, last = None):
@@ -164,5 +194,5 @@ if(__name__ == "__main__"):
     while(obj):
         obj.getDependencies()
         obj.process()
-        obj.getResult()
+        obj.getResultsObject()
         obj = jq.pop()

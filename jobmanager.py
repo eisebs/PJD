@@ -91,6 +91,8 @@ class JobManagerTcpDownlink(JobManagerdownlink):
                 del self._jobspending[rcv_obj.uid]
                 self.locallock.release()
                 print(rcv_obj.resulttext + ", " + str(len(self._jobspending)) + " jobs pending")
+                if(rcv_obj.result):
+                    rcv_obj.result.data.postDataborgReceive()
             time.sleep(0.1)
     
     def endHandle(self):
@@ -202,6 +204,7 @@ class JobManagerUplink(threading.Thread):
             else: # assume it's a subclass of JobObject
                 job_obj = rcv_obj
                 job_obj.loadDependencies()
+                job_obj.resolvePaths()
                 self.locallock.acquire()
                 self._jobspending[job_obj.uid] = job_obj
                 self.received = 1
@@ -228,11 +231,21 @@ class JobManagerUplink(threading.Thread):
             dellist = []
             for x in self._jobspending:
                 self.locallock.acquire()
-                ret_obj = wp.getAndClearResult(x)
+                ret_obj = wp.getAndClearResults(x)
                 self.locallock.release()
                 if(ret_obj):
-                    print("sending " + ret_obj.resulttext)
+                    if(ret_obj.result):
+                        ret_obj.result.data.object.preDataborgSend()
+                        print(str(len(ret_obj.result.data.object.data)) + " bytes")
+                    ret_obj.resultPickle = pickle.dumps(ret_obj.result)
+                    print(str(len(ret_obj.resultPickle)) + " bytes")
+                    ret_obj.result = pickle.loads(ret_obj.resultPickle)
+                    ret_obj.resultPickle = None
                     self.send(ret_obj)
+                    ret_obj.resultPickle = None
+                    print(str(len(ret_obj.result.data.object.data)) + " bytes")
+                    if(ret_obj.result):
+                        ret_obj.result.data.object.postDataborgSend()
                     dellist.append(x)
             for x in dellist:
                 self.locallock.acquire()

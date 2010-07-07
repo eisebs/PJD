@@ -13,7 +13,7 @@ def done(joblist):
     print("worker completed " + str(job.uid))
     wp.busythreads = wp.busythreads - 1
     wp.idlethreads = wp.idlethreads + 1
-    wp.results[job.uid] = job.getResult()
+    wp.results[job.uid] = job.getResultsObject()
 
 class WorkerPool:
     def __init__(self):
@@ -35,7 +35,7 @@ class WorkerPool:
     def isFullyBusy(self):
         return (self.idlethreads == 0)
         
-    def getAndClearResult(self, uid):
+    def getAndClearResults(self, uid):
         if uid in self.results:
             res = self.results[uid]
             del self.results[uid]

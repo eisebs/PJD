@@ -18,6 +18,7 @@ def on_tick():
   return
   
 DataBorg().setDataPath("D:/Fotos/20100704_Springbrunnen_Bundeshaus", "fotos")
+DataBorg().setDataPath("D:/temp/received", "output")
 obj = FileDataObject('FILE:fotos#DSC_0421.JPG')
 DataBorg().setValue('FILE:fotos#DSC_0421.JPG', obj)
   

@@ -56,8 +56,8 @@ class FileDataObject(DataObject):
     def __init__(self, key):
         self.__revision = 0
         self.__md5 = None
+        self.data = 0
         DataObject.__init__(self, key)
-        self.data = None
         
     def initialize(self, key):
         self.__key = key
@@ -120,6 +120,7 @@ class FileDataObject(DataObject):
           
     def postDataborgReceive(self):
         self.__path = self.findSaveFile(self.__key)
+        print(str(len(self.data)) + " bytes")
         if(self.__path):
             self.saveFile(self.__path, self.data)
         self.data = None
