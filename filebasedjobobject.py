@@ -9,11 +9,10 @@ class FileBasedJobResult(NullResult):
     pass        
         
 class FileBasedJobObject(JobObject):
-    def __init__(self, source, target, factor):
+    def __init__(self, source, target):
         JobObject.__init__(self)
         self.__source = source
         self.__target = target
-        self.__factor = factor
         sourceObject = FileDataObject(self.__source)
         self.addDependency(sourceObject.getKey(), sourceObject.getMd5())
         targetObject = FileDataObject(self.__target)
@@ -30,8 +29,11 @@ class FileBasedJobObject(JobObject):
         return JobObject.getResultsObject(self)
         
 class ImageResizeJobObject(FileBasedJobObject):
+    def __init__(self, source, target, targetsize):
+        FileBasedJobObject.__init__(self, source, target)
+        self.__targetsize = targetsize
     def doJob(self):
         source = self.getDependencies()[0].resolvedName
         resolvedTargetName = self.getResults()[0].resolvedName
-        commandstring = "i_view32 " + source + "/resize=(640) /aspectratio /convert " + resolvedTargetName
+        commandstring = "i_view32 " + source + "/resize=(" + str(self.__targetsize) +") /aspectratio /convert " + resolvedTargetName
         os.system(commandstring)
