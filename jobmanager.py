@@ -229,10 +229,9 @@ class JobManagerUplink(threading.Thread):
                 self.received = 0
                 self.send(StatusPacket("IDLE"))
             dellist = []
+            self.locallock.acquire()
             for x in self._jobspending:
-                self.locallock.acquire()
                 ret_obj = wp.getResults(x)
-                self.locallock.release()
                 if(ret_obj):
                     if(ret_obj.result):
                         ret_obj.result.data.preDataborgSend()
@@ -246,9 +245,8 @@ class JobManagerUplink(threading.Thread):
                     dellist.append(x)
                     wp.clearResults(x)
             for x in dellist:
-                self.locallock.acquire()
                 del self._jobspending[x]
-                self.locallock.release()
+            self.locallock.release()
             time.sleep(0.1)              
         
 class JobManagerTcpUplink(JobManagerUplink):
