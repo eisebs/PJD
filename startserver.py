@@ -2,6 +2,7 @@ import ui
 import os
 import time
 from server import *
+from filedataobject import *
 
 def on_button(id):
   if(id == 1):
