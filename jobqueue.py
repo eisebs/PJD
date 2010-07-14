@@ -120,7 +120,7 @@ class ImageResizeJobObject(JobObject):
         target.data.uid = self.uid
         target.data.resulttext = "multiprocessing processed job " + str(self.uid)
         print("FileDataObject(" + targetName + ")")
-        target.data.object = FileDataObject(targetName)
+        target.data = FileDataObject(targetName)
         self.setResultsObject(ImageResizeJobResult(self.uid, target))
         return JobObject.getResultsObject(self)
     

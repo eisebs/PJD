@@ -35,11 +35,15 @@ class WorkerPool:
     def isFullyBusy(self):
         return (self.idlethreads == 0)
         
-    def getAndClearResults(self, uid):
+    def getResults(self, uid):
         if uid in self.results:
             res = self.results[uid]
-            del self.results[uid]
             return res
+        return None
+        
+    def clearResults(self, uid):
+        if uid in self.results:
+            del self.results[uid]
         return None
         
 multiprocessing.freeze_support()

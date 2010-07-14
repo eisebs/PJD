@@ -231,22 +231,20 @@ class JobManagerUplink(threading.Thread):
             dellist = []
             for x in self._jobspending:
                 self.locallock.acquire()
-                ret_obj = wp.getAndClearResults(x)
+                ret_obj = wp.getResults(x)
                 self.locallock.release()
                 if(ret_obj):
                     if(ret_obj.result):
-                        ret_obj.result.data.object.preDataborgSend()
-                        print(str(len(ret_obj.result.data.object.data)) + " bytes")
+                        ret_obj.result.data.preDataborgSend()
                     ret_obj.resultPickle = pickle.dumps(ret_obj.result)
-                    print(str(len(ret_obj.resultPickle)) + " bytes")
                     ret_obj.result = pickle.loads(ret_obj.resultPickle)
                     ret_obj.resultPickle = None
                     self.send(ret_obj)
                     ret_obj.resultPickle = None
-                    print(str(len(ret_obj.result.data.object.data)) + " bytes")
                     if(ret_obj.result):
-                        ret_obj.result.data.object.postDataborgSend()
+                        ret_obj.result.data.postDataborgSend()
                     dellist.append(x)
+                    wp.clearResults(x)
             for x in dellist:
                 self.locallock.acquire()
                 del self._jobspending[x]
