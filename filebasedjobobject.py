@@ -28,12 +28,12 @@ class FileBasedJobObject(JobObject):
         self.setResultsObject(FileBasedJobResult(self.uid, target))
         return JobObject.getResultsObject(self)
         
-class ImageResizeJobObject(FileBasedJobObject):
-    def __init__(self, source, target, targetsize):
+class IrfanviewJobObject(FileBasedJobObject):
+    def __init__(self, source, target, iViewOptions):
         FileBasedJobObject.__init__(self, source, target)
-        self.__targetsize = targetsize
+        self.__iViewOptions = iViewOptions
     def doJob(self):
         source = self.getDependencies()[0].resolvedName
         resolvedTargetName = self.getResults()[0].resolvedName
-        commandstring = "i_view32 " + source + "/resize=(" + str(self.__targetsize) +") /aspectratio /convert " + resolvedTargetName
+        commandstring = "i_view32 " + source + " " + self.__iViewOptions + " /convert=" + resolvedTargetName
         os.system(commandstring)
