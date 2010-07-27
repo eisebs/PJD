@@ -6,6 +6,7 @@ import hashlib
 import struct
 from jobqueue import *
 from systemborg import *
+from filedataobject import *
 
 class GoodbyePacket:
     pass     
@@ -310,6 +311,7 @@ if(__name__ == "__main__"):
     DataBorg().setUplink(DataBorgTcpUplink("127.0.0.1", 12214))   
     DataBorg().setDataPath("D:/temp/input", "fotos")    
     DataBorg().setDataPath("D:/temp/output", "output")    
+    forceDataBorgPathScan()
     jobmgr = JobManager()    
     uplink = JobManagerTcpUplink("127.0.0.1", 12213)
     jobmgr.setUplink(uplink)

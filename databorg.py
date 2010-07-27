@@ -189,7 +189,7 @@ class DataBorg(object):
                 print("found it, and I'm the boss!")
                 return 1
             else:
-                return 0
+                return self.hasValueMd5(key, self.__register[key].getMd5())
         else:
             return self.askServer(key, 0)
                 
@@ -233,3 +233,6 @@ class DataBorg(object):
             return path
         print("resolveDataPath " + alias + ": " + self.__dataPathMap[alias])
         return normpath(self.__dataPathMap[alias] + "/" + path)
+            
+    def getDataPathMap(self):
+        return self.__dataPathMap

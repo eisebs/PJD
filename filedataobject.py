@@ -84,3 +84,11 @@ class FileDataObject(DataObject):
         
     def getKey(self):
         return self.__key
+		
+def forceDataBorgPathScan():
+	map = DataBorg().getDataPathMap()
+	for key in map:
+		dirList = os.listdir(map[key])
+		for fname in dirList:
+			obj = FileDataObject("FILE:" + key + "#" + fname)
+			DataBorg().setValue("FILE:" + key + "#" + fname, obj)

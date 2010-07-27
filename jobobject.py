@@ -39,7 +39,7 @@ class JobObject:
     def loadDependencies(self):
         for x in self.__dependencies:
             print("x.resolvedName = " + x.resolvedName)
-            if(not DataBorg().hasValueMd5(x.resolvedName, x.md5)):
+            if(not DataBorg().hasValue(x.resolvedName)):
                 self.valid = 0
                 return
             x.data = DataBorg().getValue(x.resolvedName)

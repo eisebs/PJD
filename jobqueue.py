@@ -59,17 +59,4 @@ class JobQueue:
         obj = self.__first
         self.__first = self.__first.getNext() 
         self.lock.release()
-        return obj.getObj()	
-
-if(__name__ == "__main__"):
-    jq = JobQueue()
-    jo1 = DebugJobObject("test1")  
-    jo2 = DebugJobObject("test2")  
-    jq.push(jo1)      
-    jq.push(jo2)
-    obj = jq.pop()   
-    while(obj):
-        obj.getDependencies()
-        obj.process()
-        obj.getResultsObject()
-        obj = jq.pop()
+        return obj.getObj()

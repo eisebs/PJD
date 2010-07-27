@@ -47,27 +47,3 @@ class WorkerPool:
         return None
         
 multiprocessing.freeze_support()
-
-if(__name__ == "__main__"):    
-    wp = WorkerPool()
-    while(not wp.push("dieter")):
-        time.sleep(0.1)
-    while(not wp.push("eva")):
-        time.sleep(0.1)
-    while(not wp.push("rudolf")):
-        time.sleep(0.1)
-    while(not wp.push("heinz")):
-        time.sleep(0.1)
-    while(not wp.push("gisela")):
-        time.sleep(0.1)
-    while(not wp.push("hans")):
-        time.sleep(0.1)
-    while(not wp.push("peter")):
-        time.sleep(0.1)
-    while(not wp.push("rudi")):
-        time.sleep(0.1)
-    while(not wp.push("angela")):
-        time.sleep(0.1)
-    while(not wp.push("peer")):
-        time.sleep(0.1)
-    time.sleep(1000)

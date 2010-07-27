@@ -27,9 +27,3 @@ class MessageSystem:
                 x(object)
         else:
             return 0
-        
-if(__name__ == "__main__"):
-    msgsys = MessageSystem()
-    testobject = "testobjekt"
-    msgsys.register("test", testobject)
-    msgsys.unregister("test", testobject)
